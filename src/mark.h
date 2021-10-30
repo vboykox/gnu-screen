@@ -41,6 +41,7 @@ struct markdata {
 	int	left_mar, right_mar, nonl;
 	int	rep_cnt;	/* number of repeats */
 	int	append_mode;	/* shall we overwrite or append to copybuffer */
+	int	multiselect_mode;	/* do not exit on second mark set */
 	int	write_buffer;	/* shall we do a KEY_WRITE_EXCHANGE right away? */
 	int	hist_offset;	/* how many lines are on top of the screen */
 	char	isstr[100];	/* string we are searching for */

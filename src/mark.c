@@ -411,6 +411,18 @@ int GetHistory(void)
 	return 1;
 }
 
+static int yend_get(void) {
+	int yend = fore->w_height - 1;
+	if (fore->w_histheight - markdata->hist_offset < fore->w_height) {
+		int n = fore->w_histheight - markdata->hist_offset;
+		if (n < 0) n = 0;
+		if (n > markdata->hist_offset)
+			n = markdata->hist_offset;
+		yend -= n;
+	}
+	return yend;
+}
+
 /**********************************************************************/
 
 void MarkRoutine(void)
@@ -427,6 +439,7 @@ void MarkRoutine(void)
 	markdata->second = 0;
 	markdata->rep_cnt = 0;
 	markdata->append_mode = 0;
+	markdata->multiselect_mode = 0;
 	markdata->write_buffer = 0;
 	markdata->nonl = 0;
 	markdata->left_mar = 0;
@@ -736,6 +749,10 @@ static void MarkProcess(char **inbufp, size_t *inlenp)
 			markdata->append_mode = 1 - markdata->append_mode;
 			LMsg(0, (markdata->append_mode) ? ":set append" : ":set noappend");
 			break;
+		case 'm':
+			markdata->multiselect_mode = 1 - markdata->multiselect_mode;
+			LMsg(0, (markdata->multiselect_mode) ? ":set multiselect" : ":set nomultiselect");
+			break;
 		case 'v':
 		case 'V':
 			/* this sets start column to column 9 for VI :set nu users */
@@ -790,6 +807,13 @@ static void MarkProcess(char **inbufp, size_t *inlenp)
 			case 3:
 				LMsg(0, "Lines joined with comma");
 				break;
+			}
+			break;
+		case 'd':
+			if (markdata->second) {
+				int yend = yend_get();
+				rem(markdata->x1, markdata->y1, cx, cy, 1, NULL, yend);
+				LMsg(0, "Selection discarded");
 			}
 			break;
 		case '/':
@@ -865,11 +889,7 @@ static void MarkProcess(char **inbufp, size_t *inlenp)
 				newcopylen = rem(markdata->x1, markdata->y1, x2, y2, 2, NULL, 0);	/* count */
 				if (md_user->u_plop.buf && !append_mode)
 					UserFreeCopyBuffer(md_user);
-				yend = fore->w_height - 1;
-				if (fore->w_histheight - markdata->hist_offset < fore->w_height) {
-					markdata->second = 0;
-					yend -= MarkScrollUpDisplay(fore->w_histheight - markdata->hist_offset);
-				}
+				yend = yend_get();
 				if (newcopylen > 0) {
 					/* the +3 below is for : cr + lf + \0 */
 					if (md_user->u_plop.buf)
@@ -914,14 +934,16 @@ static void MarkProcess(char **inbufp, size_t *inlenp)
 						}
 					}
 					md_user->u_plop.len += rem(markdata->x1, markdata->y1, x2, y2,
-								   markdata->hist_offset == fore->w_histheight,
-								   md_user->u_plop.buf + md_user->u_plop.len, yend);
+								   1, md_user->u_plop.buf + md_user->u_plop.len,
+								   yend);
 					md_user->u_plop.enc = fore->w_encoding;
 				}
-				if (markdata->hist_offset != fore->w_histheight) {
-					LAY_CALL_UP(LRefreshAll(flayer, 0));
+				if (!markdata->multiselect_mode) {
+					if (markdata->hist_offset != fore->w_histheight) {
+						LAY_CALL_UP(LRefreshAll(flayer, 0));
+					}
+					ExitOverlayPage();
 				}
-				ExitOverlayPage();
 				WindowChanged(fore, WINESC_COPY_MODE);
 				if (append_mode)
 					LMsg(0, "Appended %d characters to buffer", newcopylen);

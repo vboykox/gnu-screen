@@ -1633,6 +1633,11 @@ the contents of the paste buffer will not be overwritten, but is appended to.
 the screen-exchange file (/tmp/screen\-exchange per default) once copy-mode is
 finished. 
 .PP
+\fBm\fP toggles in multi-select mode. Setting a second mark will
+modify the paste buffer without exiting copy-mode.
+.PP
+\fBd\fP discards (cancels) a selection without exiting copy-mode.
+.PP
 This example demonstrates how to dump the whole scrollback buffer 
 to that file: \*QC-A [ g SPACE G $ >\*U.
 .PP
